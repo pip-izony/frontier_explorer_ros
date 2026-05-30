@@ -64,7 +64,7 @@ ros2 run tf2_ros static_transform_publisher \
 In a new terminal (`docker compose exec ros bash`):
 ```bash
 # Generate + build the frontier_safety package
-./collision_setup.sh
+./collision_avoidance.sh
 ```
 This writes and builds the `frontier_safety` package (LiDAR-based collision
 avoidance with a gaussian-smoothed obstacle histogram). Safe to re-run.
