@@ -37,6 +37,8 @@ docker compose exec ros bash
 Inside the container:
 
 ```bash
+# Apply patch for the sjtu
+./frontier_setup.sh
 # Launch the simulator
 ros2 launch sjtu_drone_bringup sjtu_drone_bringup.launch.py
 ```
@@ -51,6 +53,9 @@ ros2 topic pub /drone/takeoff std_msgs/msg/Empty "{}" --once
 
 # List topics to confirm sensors are publishing
 ros2 topic list
+
+ros2 run tf2_ros static_transform_publisher \
+  0 0 0.10 0 0 0 simple_drone/base_footprint velodyne_link
 ```
 ---
 ## Next steps (project roadmap)
