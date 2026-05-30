@@ -58,6 +58,25 @@ ros2 run tf2_ros static_transform_publisher \
   0 0 0.10 0 0 0 simple_drone/base_footprint velodyne_link
 ```
 ---
+
+### 4. Add collision avoidance (frontier_safety)
+
+In a new terminal (`docker compose exec ros bash`):
+```bash
+# Generate + build the frontier_safety package
+./collision_setup.sh
+```
+This writes and builds the `frontier_safety` package (LiDAR-based collision
+avoidance with a gaussian-smoothed obstacle histogram). Safe to re-run.
+
+Launch the node (with the simulator already running):
+```bash
+source /root/ros2_ws/install/setup.bash
+ros2 launch frontier_safety collision_avoidance.launch.py
+```
+
+
+
 ## Next steps (project roadmap)
 
 1. ✅ Environment up (this README)
