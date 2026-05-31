@@ -1,0 +1,210 @@
+Binary files ./sjtu_drone/.git/index and ./sjtu_drone_patch/.git/index differ
+diff -urN ./sjtu_drone/.git/logs/HEAD ./sjtu_drone_patch/.git/logs/HEAD
+--- ./sjtu_drone/.git/logs/HEAD	2026-05-31 17:24:43.190455002 +0000
++++ ./sjtu_drone_patch/.git/logs/HEAD	2026-05-31 17:17:27.551967946 +0000
+@@ -1 +1 @@
+-0000000000000000000000000000000000000000 3f8627ebddf390fd35ffb84b8654b62e0b66fca2 root <root@39c6a4f2fbac.(none)> 1780248283 +0000	clone: from https://github.com/NovoG93/sjtu_drone.git
++0000000000000000000000000000000000000000 3f8627ebddf390fd35ffb84b8654b62e0b66fca2 root <root@39c6a4f2fbac.(none)> 1780247847 +0000	clone: from https://github.com/NovoG93/sjtu_drone.git
+diff -urN ./sjtu_drone/.git/logs/refs/heads/ros2 ./sjtu_drone_patch/.git/logs/refs/heads/ros2
+--- ./sjtu_drone/.git/logs/refs/heads/ros2	2026-05-31 17:24:43.190455002 +0000
++++ ./sjtu_drone_patch/.git/logs/refs/heads/ros2	2026-05-31 17:17:27.551967946 +0000
+@@ -1 +1 @@
+-0000000000000000000000000000000000000000 3f8627ebddf390fd35ffb84b8654b62e0b66fca2 root <root@39c6a4f2fbac.(none)> 1780248283 +0000	clone: from https://github.com/NovoG93/sjtu_drone.git
++0000000000000000000000000000000000000000 3f8627ebddf390fd35ffb84b8654b62e0b66fca2 root <root@39c6a4f2fbac.(none)> 1780247847 +0000	clone: from https://github.com/NovoG93/sjtu_drone.git
+diff -urN ./sjtu_drone/.git/logs/refs/remotes/origin/HEAD ./sjtu_drone_patch/.git/logs/refs/remotes/origin/HEAD
+--- ./sjtu_drone/.git/logs/refs/remotes/origin/HEAD	2026-05-31 17:24:43.190455002 +0000
++++ ./sjtu_drone_patch/.git/logs/refs/remotes/origin/HEAD	2026-05-31 17:17:27.551967946 +0000
+@@ -1 +1 @@
+-0000000000000000000000000000000000000000 3f8627ebddf390fd35ffb84b8654b62e0b66fca2 root <root@39c6a4f2fbac.(none)> 1780248283 +0000	clone: from https://github.com/NovoG93/sjtu_drone.git
++0000000000000000000000000000000000000000 3f8627ebddf390fd35ffb84b8654b62e0b66fca2 root <root@39c6a4f2fbac.(none)> 1780247847 +0000	clone: from https://github.com/NovoG93/sjtu_drone.git
+Binary files ./sjtu_drone/sjtu_drone_bringup/sjtu_drone_bringup/__pycache__/__init__.cpython-310.pyc and ./sjtu_drone_patch/sjtu_drone_bringup/sjtu_drone_bringup/__pycache__/__init__.cpython-310.pyc differ
+Binary files ./sjtu_drone/sjtu_drone_bringup/sjtu_drone_bringup/__pycache__/spawn_drone.cpython-310.pyc and ./sjtu_drone_patch/sjtu_drone_bringup/sjtu_drone_bringup/__pycache__/spawn_drone.cpython-310.pyc differ
+diff -urN ./sjtu_drone/sjtu_drone_description/models/sjtu_drone/sjtu_drone.sdf ./sjtu_drone_patch/sjtu_drone_description/models/sjtu_drone/sjtu_drone.sdf
+--- ./sjtu_drone/sjtu_drone_description/models/sjtu_drone/sjtu_drone.sdf	2026-05-31 17:24:43.205454986 +0000
++++ ./sjtu_drone_patch/sjtu_drone_description/models/sjtu_drone/sjtu_drone.sdf	2026-05-31 17:24:10.212489285 +0000
+@@ -187,6 +187,50 @@
+         </plugin>
+         <pose>0 0 0 3.14159 1.57079 3.14159</pose>
+       </sensor>
++    
++      <!-- ===== Velodyne VLP-16 (Frontier Explorer) ===== -->
++      <sensor name='velodyne_vlp16' type='ray'>
++        <pose>0 0 0.10 0 0 0</pose>
++        <visualize>true</visualize>
++        <update_rate>10</update_rate>
++        <always_on>true</always_on>
++        <ray>
++          <scan>
++            <horizontal>
++              <samples>900</samples>
++              <resolution>1</resolution>
++              <min_angle>-3.14159</min_angle>
++              <max_angle>3.14159</max_angle>
++            </horizontal>
++            <vertical>
++              <samples>16</samples>
++              <resolution>1</resolution>
++              <min_angle>-0.2617993878</min_angle>
++              <max_angle>0.2617993878</max_angle>
++            </vertical>
++          </scan>
++          <range>
++            <min>0.30</min>
++            <max>30.0</max>
++            <resolution>0.01</resolution>
++          </range>
++          <noise>
++            <type>gaussian</type>
++            <mean>0.0</mean>
++            <stddev>0.01</stddev>
++          </noise>
++        </ray>
++        <plugin name='gazebo_ros_velodyne' filename='libgazebo_ros_ray_sensor.so'>
++          <ros>
++            <namespace>/simple_drone</namespace>
++            <remapping>~/out:=velodyne_points</remapping>
++          </ros>
++          <output_type>sensor_msgs/PointCloud2</output_type>
++          <frame_name>velodyne_link</frame_name>
++        </plugin>
++      </sensor>
++      <!-- ===== /Velodyne ===== -->
++
+     </link>
+     <static>0</static>
+     <plugin name='simple_drone' filename='libplugin_drone.so'>
+Binary files ./sjtu_drone/sjtu_drone_description/plugins/libplugin_drone.so and ./sjtu_drone_patch/sjtu_drone_description/plugins/libplugin_drone.so differ
+diff -urN ./sjtu_drone/sjtu_drone_description/urdf/sjtu_drone.urdf ./sjtu_drone_patch/sjtu_drone_description/urdf/sjtu_drone.urdf
+--- ./sjtu_drone/sjtu_drone_description/urdf/sjtu_drone.urdf	2026-05-31 17:24:43.205454986 +0000
++++ ./sjtu_drone_patch/sjtu_drone_description/urdf/sjtu_drone.urdf	2026-05-31 17:24:10.232489264 +0000
+@@ -261,4 +261,63 @@
+       </plugin>
+     </sensor>
+   </gazebo>
++
++  <!-- ===== Velodyne VLP-16 (Frontier Explorer) ===== -->
++  <link name="velodyne_link">
++    <inertial>
++      <mass value="0.83"/>
++      <origin xyz="0 0 0" rpy="0 0 0"/>
++      <inertia ixx="0.000908" ixy="0" ixz="0" iyy="0.000908" iyz="0" izz="0.001104"/>
++    </inertial>
++    <visual>
++      <geometry><cylinder radius="0.0516" length="0.0717"/></geometry>
++    </visual>
++    <collision>
++      <geometry><cylinder radius="0.0516" length="0.0717"/></geometry>
++    </collision>
++  </link>
++
++  <joint name="velodyne_joint" type="fixed">
++    <parent link="base_link"/>
++    <child link="velodyne_link"/>
++    <origin xyz="0 0 0.10" rpy="0 0 0"/>
++  </joint>
++
++  <gazebo reference="velodyne_link">
++    <sensor type="ray" name="velodyne_vlp16">
++      <pose>0 0 0 0 0 0</pose>
++      <visualize>true</visualize>
++      <update_rate>10</update_rate>
++      <always_on>true</always_on>
++      <ray>
++        <scan>
++          <horizontal>
++            <samples>900</samples><resolution>1</resolution>
++            <min_angle>-3.14159</min_angle><max_angle>3.14159</max_angle>
++          </horizontal>
++          <vertical>
++            <samples>16</samples><resolution>1</resolution>
++            <min_angle>-0.2617993878</min_angle>
++            <max_angle> 0.2617993878</max_angle>
++          </vertical>
++        </scan>
++        <range>
++          <min>0.30</min><max>30.0</max><resolution>0.01</resolution>
++        </range>
++        <noise>
++          <type>gaussian</type><mean>0.0</mean><stddev>0.01</stddev>
++        </noise>
++      </ray>
++      <plugin name="gazebo_ros_velodyne" filename="libgazebo_ros_ray_sensor.so">
++        <ros>
++          <namespace>/simple_drone</namespace>
++          <remapping>~/out:=velodyne_points</remapping>
++        </ros>
++        <output_type>sensor_msgs/PointCloud2</output_type>
++        <frame_name>velodyne_link</frame_name>
++      </plugin>
++    </sensor>
++  </gazebo>
++  <!-- ===== /Velodyne ===== -->
++
+ </robot>
+diff -urN ./sjtu_drone/sjtu_drone_description/urdf/sjtu_drone.urdf.xacro ./sjtu_drone_patch/sjtu_drone_description/urdf/sjtu_drone.urdf.xacro
+--- ./sjtu_drone/sjtu_drone_description/urdf/sjtu_drone.urdf.xacro	2026-05-31 17:24:43.205454986 +0000
++++ ./sjtu_drone_patch/sjtu_drone_description/urdf/sjtu_drone.urdf.xacro	2026-05-31 17:24:10.232489264 +0000
+@@ -306,4 +306,63 @@
+       </plugin>
+     </sensor>
+   </gazebo>
++
++  <!-- ===== Velodyne VLP-16 (Frontier Explorer) ===== -->
++  <link name="velodyne_link">
++    <inertial>
++      <mass value="0.83"/>
++      <origin xyz="0 0 0" rpy="0 0 0"/>
++      <inertia ixx="0.000908" ixy="0" ixz="0" iyy="0.000908" iyz="0" izz="0.001104"/>
++    </inertial>
++    <visual>
++      <geometry><cylinder radius="0.0516" length="0.0717"/></geometry>
++    </visual>
++    <collision>
++      <geometry><cylinder radius="0.0516" length="0.0717"/></geometry>
++    </collision>
++  </link>
++
++  <joint name="velodyne_joint" type="fixed">
++    <parent link="base_link"/>
++    <child link="velodyne_link"/>
++    <origin xyz="0 0 0.10" rpy="0 0 0"/>
++  </joint>
++
++  <gazebo reference="velodyne_link">
++    <sensor type="ray" name="velodyne_vlp16">
++      <pose>0 0 0 0 0 0</pose>
++      <visualize>true</visualize>
++      <update_rate>10</update_rate>
++      <always_on>true</always_on>
++      <ray>
++        <scan>
++          <horizontal>
++            <samples>900</samples><resolution>1</resolution>
++            <min_angle>-3.14159</min_angle><max_angle>3.14159</max_angle>
++          </horizontal>
++          <vertical>
++            <samples>16</samples><resolution>1</resolution>
++            <min_angle>-0.2617993878</min_angle>
++            <max_angle> 0.2617993878</max_angle>
++          </vertical>
++        </scan>
++        <range>
++          <min>0.30</min><max>30.0</max><resolution>0.01</resolution>
++        </range>
++        <noise>
++          <type>gaussian</type><mean>0.0</mean><stddev>0.01</stddev>
++        </noise>
++      </ray>
++      <plugin name="gazebo_ros_velodyne" filename="libgazebo_ros_ray_sensor.so">
++        <ros>
++          <namespace>/simple_drone</namespace>
++          <remapping>~/out:=velodyne_points</remapping>
++        </ros>
++        <output_type>sensor_msgs/PointCloud2</output_type>
++        <frame_name>velodyne_link</frame_name>
++      </plugin>
++    </sensor>
++  </gazebo>
++  <!-- ===== /Velodyne ===== -->
++
+ </robot>

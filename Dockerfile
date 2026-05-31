@@ -1,14 +1,4 @@
-# ============================================================================
-# 3D Frontier Explorer — Dedicated ROS 2 Humble + Gazebo Classic environment
-# ============================================================================
-# Base: osrf/ros:humble-desktop (ROS 2 Humble + RViz2 + core tools)
-# Adds: Gazebo Classic, sjtu_drone (UAV sim), OctoMap stack, PCL
-# Pre-builds: sjtu_drone + octomap_mapping into /opt/deps_ws so user workspace
-#             /root/ros2_ws stays clean for the user's frontier_explorer_3d code.
-# ============================================================================
-
 FROM osrf/ros:humble-desktop
-
 ARG DEBIAN_FRONTEND=noninteractive
 SHELL ["/bin/bash", "-c"]
 
@@ -47,34 +37,16 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
         ros-${ROS_DISTRO}-perception-pcl \
     && rm -rf /var/lib/apt/lists/*
 
-# ---------- 4. Pre-build dependency workspace (/opt/deps_ws) ----------
-#  - sjtu_drone (NovoG93/ros2): kinematic UAV simulator
-#  - octomap_mapping (ros2 branch): octomap_server for 3D occupancy mapping
-RUN mkdir -p /opt/deps_ws/src
-WORKDIR /opt/deps_ws/src
+# ---------- 4. rosdep reset ----------
+RUN rosdep update --rosdistro=${ROS_DISTRO} || true
 
-RUN git clone --depth 1 -b ros2 https://github.com/NovoG93/sjtu_drone.git && \
-    git clone --depth 1 -b ros2 https://github.com/OctoMap/octomap_mapping.git
-
-WORKDIR /opt/deps_ws
-
-# rosdep + colcon build (parallel-workers 2 for memory safety on Mac/Win Docker)
-RUN apt-get update && \
-    source /opt/ros/${ROS_DISTRO}/setup.bash && \
-    rosdep update && \
-    rosdep install --from-paths src --ignore-src -r -y --skip-keys "tf" && \
-    colcon build --symlink-install --parallel-workers 2 && \
-    rm -rf /var/lib/apt/lists/*
-
-# ---------- 5. User workspace (mounted at runtime) ----------
+# ---------- 5. User workspace ----------
 RUN mkdir -p /root/ros2_ws/src
 WORKDIR /root/ros2_ws
 
-# ---------- 6. Auto-source ROS + deps + user workspace ----------
+# ---------- 6. Auto-source ----------
 RUN echo "source /opt/ros/${ROS_DISTRO}/setup.bash" >> /root/.bashrc && \
-    echo "source /opt/deps_ws/install/setup.bash" >> /root/.bashrc && \
     echo "if [ -f /root/ros2_ws/install/setup.bash ]; then source /root/ros2_ws/install/setup.bash; fi" >> /root/.bashrc && \
-    echo "defshell -bash" >> /root/.screenrc && \
-    echo "export GAZEBO_MODEL_PATH=\$GAZEBO_MODEL_PATH:/opt/deps_ws/install/sjtu_drone_description/share/sjtu_drone_description/models" >> /root/.bashrc
+    echo "defshell -bash" >> /root/.screenrc
 
 WORKDIR /root/ros2_ws
