@@ -21,9 +21,9 @@ docker compose up
 
 Leave this terminal running. Open a browser to:
 
-> **http://localhost:8080/vnc.html** → click **Connect**
+> **http://localhost:8080/vnc.html**
 
-You'll see a Linux desktop. This is where Gazebo and RViz will appear.
+You'll see a Linux desktop. This is where Gazebo will appear.
 
 ### 3. Run sjtu_drone
 
@@ -35,11 +35,15 @@ docker compose exec ros bash
 ```
 
 Inside the container:
-
 ```bash
 # Apply patch for the sjtu
 ./frontier_setup.sh
+
+# Apply new map
+mv playground.world /root/ros2_ws/src/sjtu_drone/sjtu_drone_description/worlds/playground.world
+
 # Launch the simulator
+source /root/ros2_ws/install/setup.bash
 ros2 launch sjtu_drone_bringup sjtu_drone_bringup.launch.py
 ```
 
@@ -48,12 +52,8 @@ You should see Gazebo with a quadrotor appear in your browser tab.
 In a **third terminal** (also `docker compose exec ros bash`):
 
 ```bash
-# Takeoff
-ros2 topic pub /drone/takeoff std_msgs/msg/Empty "{}" --once
-
-# List topics to confirm sensors are publishing
-ros2 topic list
-
+# Mapping command
+source /root/ros2_ws/install/setup.bash
 ros2 run tf2_ros static_transform_publisher \
   0 0 0.10 0 0 0 simple_drone/base_footprint velodyne_link
 ```
@@ -85,7 +85,6 @@ ros2 run octomap_server octomap_server_node --ros-args \
   -p sensor_model.max_range:=25.0 \
   -p use_sim_time:=true
 ```
-
 
 ## Next steps (project roadmap)
 
