@@ -48,8 +48,8 @@ You should see Gazebo with a quadrotor appear in your browser tab.
 In a **third terminal** (also `docker compose exec ros bash`):
 
 ```bash
-# Takeoff
-ros2 topic pub /drone/takeoff std_msgs/msg/Empty "{}" --once
+# Takeoff  (namespace is /simple_drone — set in sjtu_drone_bringup/config/drone.yaml)
+ros2 topic pub /simple_drone/takeoff std_msgs/msg/Empty "{}" --once
 
 # List topics to confirm sensors are publishing
 ros2 topic list
@@ -83,8 +83,11 @@ ros2 run octomap_server octomap_server_node --ros-args \
   -p frame_id:=simple_drone/odom \
   -p resolution:=0.1 \
   -p sensor_model.max_range:=25.0 \
-  -p use_sim_time:=true
+  -p use_sim_time:=true \
+  -p publish_free_space:=true
 ```
+
+`publish_free_space:=true` is required for the frontier extractor to receive free-cell data.
 
 
 ## Next steps (project roadmap)
