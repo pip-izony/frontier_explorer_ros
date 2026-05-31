@@ -154,8 +154,6 @@ class FrontierExtractor(Node):
     # ── publishers ───────────────────────────────────────────────────────────
 
     def _publish_frontier_cloud(self, pts, labels, hdr):
-        if self._frontier_cloud_pub.get_subscription_count() == 0:
-            return
         fields = [
             PointField(name='x',          offset=0,  datatype=PointField.FLOAT32, count=1),
             PointField(name='y',          offset=4,  datatype=PointField.FLOAT32, count=1),
@@ -167,8 +165,6 @@ class FrontierExtractor(Node):
         self._frontier_cloud_pub.publish(msg)
 
     def _publish_cluster_markers(self, centroids, hdr):
-        if self._cluster_markers_pub.get_subscription_count() == 0:
-            return
         ma = MarkerArray()
         del_m = Marker()
         del_m.action = Marker.DELETEALL
