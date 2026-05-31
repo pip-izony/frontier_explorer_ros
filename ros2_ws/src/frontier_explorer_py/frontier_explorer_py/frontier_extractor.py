@@ -69,8 +69,8 @@ class FrontierExtractor(Node):
         self._cluster_markers_pub  = self.create_publisher(MarkerArray,   '~/cluster_markers',   10)
         self._status_pub           = self.create_publisher(String,        '~/status',            10)
 
-        self._free_pts:  np.ndarray | None = None
-        self._occ_pts:   np.ndarray | None = None
+        self._free_pts:   np.ndarray | None = None
+        self._occ_pts:    np.ndarray = np.empty((0, 3), dtype=np.float32)  # optional
         self._resolution: float | None = None
         self._frame_id = 'map'
 
@@ -111,8 +111,10 @@ class FrontierExtractor(Node):
     # ── core update ──────────────────────────────────────────────────────────
 
     def _try_update(self):
-        if self._free_pts is None or self._occ_pts is None or self._resolution is None:
+        if self._free_pts is None or self._resolution is None:
             return
+        self.get_logger().debug(
+            f'update: free={len(self._free_pts)} occ={len(self._occ_pts)} res={self._resolution:.3f}')
         if len(self._free_pts) == 0:
             self._publish_status(0, 0)
             return
