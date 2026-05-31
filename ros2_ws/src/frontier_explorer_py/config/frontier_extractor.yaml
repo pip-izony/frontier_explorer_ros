@@ -1,0 +1,6 @@
+frontier_extractor:
+  ros__parameters:
+    free_cells_topic: /free_cells_vis_array
+    occ_cells_topic:  /octomap_point_cloud_centers
+    cluster_radius:   1.5   # metres — merge frontier voxels within this radius
+    min_cluster_size: 5     # drop clusters smaller than this
