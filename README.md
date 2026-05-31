@@ -76,6 +76,16 @@ ros2 launch frontier_safety collision_avoidance.launch.py
 ```
 
 
+### 5. Run octomap_server
+```bash
+ros2 run octomap_server octomap_server_node --ros-args \
+  -r cloud_in:=/simple_drone/velodyne_points \
+  -p frame_id:=simple_drone/odom \
+  -p resolution:=0.1 \
+  -p sensor_model.max_range:=25.0 \
+  -p use_sim_time:=true
+```
+
 
 ## Next steps (project roadmap)
 
