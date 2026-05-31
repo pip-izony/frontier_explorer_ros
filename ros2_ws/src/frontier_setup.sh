@@ -7,7 +7,7 @@ cd /root/ros2_ws/src
 
 PATCH_FILE=/root/ros2_ws/src/velodyne.patch
 cd sjtu_drone
-patch -p1 < "$PATCH_FILE"
+patch -p2 < "$PATCH_FILE"
 
 cd /root/ros2_ws
 source /opt/ros/${ROS_DISTRO}/setup.bash
