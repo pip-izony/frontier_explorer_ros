@@ -1,5 +1,7 @@
 #!/bin/bash
 
+apt update
+
 cd /root/ros2_ws/src
 
 [ -d sjtu_drone ] || git clone -b ros2 https://github.com/NovoG93/sjtu_drone.git
@@ -14,4 +16,4 @@ source /opt/ros/${ROS_DISTRO}/setup.bash
 
 rosdep update --rosdistro=${ROS_DISTRO}
 rosdep install --from-paths src --ignore-src -r -y --skip-keys "tf"
-colcon build --symlink-install --packages-select sjtu_drone_description sjtu_drone_bringup sjtu_drone_control
+colcon build --symlink-install --packages-select sjtu_drone_description sjtu_drone_bringup sjtu_drone_control octomap_server
