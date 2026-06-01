@@ -9,7 +9,6 @@ ROS 2 Humble + Gazebo Classic + sjtu_drone + OctoMap, packaged as a single Docke
 ### 1. First-time setup (one-time, ~15–25 min)
 
 ```bash
-cd frontier_explorer_env
 docker compose build
 ```
 
@@ -23,61 +22,85 @@ Leave this terminal running. Open a browser to:
 
 > **http://localhost:8080/vnc.html** → click **Connect**
 
-You'll see a Linux desktop. This is where Gazebo and RViz will appear.
+You will see a Linux desktop. Gazebo and RViz2 will appear here.
 
-### 3. Run sjtu_drone
+---
 
-Open a **new terminal** on the host:
+### 3. Apply Velodyne patch and build (first time only, ~5–10 min)
+
+Open a container shell:
 
 ```bash
-cd frontier_explorer_env
 docker compose exec ros bash
 ```
 
 Inside the container:
 
 ```bash
-# Apply patch for the sjtu
+cd /root/ros2_ws/src
 ./frontier_setup.sh
-# Launch the simulator
+source /root/ros2_ws/install/setup.bash
+```
+
+This clones dependencies, patches the sjtu_drone URDF to add a VLP-16 LiDAR, and builds all packages. Safe to re-run if the container is recreated.
+
+---
+
+### 4. Launch the simulator
+
+In a container shell (`docker compose exec ros bash`):
+
+```bash
+source /root/ros2_ws/install/setup.bash
 ros2 launch sjtu_drone_bringup sjtu_drone_bringup.launch.py
 ```
 
-You should see Gazebo with a quadrotor appear in your browser tab.
+Gazebo and RViz2 should appear in the browser tab.
 
-In a **third terminal** (also `docker compose exec ros bash`):
+---
+
+### 5. Takeoff + static TF
+
+In a new container shell:
 
 ```bash
-# Takeoff  (namespace is /simple_drone — set in sjtu_drone_bringup/config/drone.yaml)
+source /root/ros2_ws/install/setup.bash
+
+# Takeoff (namespace set in sjtu_drone_bringup/config/drone.yaml)
 ros2 topic pub /simple_drone/takeoff std_msgs/msg/Empty "{}" --once
 
-# List topics to confirm sensors are publishing
-ros2 topic list
-
+# Publish the velodyne_link → base_footprint static transform
 ros2 run tf2_ros static_transform_publisher \
   0 0 0.10 0 0 0 simple_drone/base_footprint velodyne_link
 ```
+
 ---
 
-### 4. Add collision avoidance (frontier_safety)
+### 6. Add collision avoidance (frontier_safety)
 
-In a new terminal (`docker compose exec ros bash`):
-```bash
-# Generate + build the frontier_safety package
-./collision_avoidance.sh
-```
-This writes and builds the `frontier_safety` package (LiDAR-based collision
-avoidance with a gaussian-smoothed obstacle histogram). Safe to re-run.
+In a new container shell:
 
-Launch the node (with the simulator already running):
 ```bash
 source /root/ros2_ws/install/setup.bash
 ros2 launch frontier_safety collision_avoidance.launch.py
 ```
 
+If `frontier_safety` was not built by `frontier_setup.sh`, build it first:
 
-### 5. Run octomap_server
 ```bash
+cd /root/ros2_ws
+colcon build --packages-select frontier_safety --symlink-install
+source install/setup.bash
+```
+
+---
+
+### 7. Run octomap_server
+
+In a new container shell:
+
+```bash
+source /root/ros2_ws/install/setup.bash
 ros2 run octomap_server octomap_server_node --ros-args \
   -r cloud_in:=/simple_drone/velodyne_points \
   -p frame_id:=simple_drone/odom \
@@ -87,16 +110,75 @@ ros2 run octomap_server octomap_server_node --ros-args \
   -p publish_free_space:=true
 ```
 
-`publish_free_space:=true` is required for the frontier extractor to receive free-cell data.
+> `publish_free_space:=true` is required for the frontier extractor.
 
+---
+
+### 8. Run frontier extractor
+
+Build once (or after any source change):
+
+```bash
+cd /root/ros2_ws
+colcon build --packages-select frontier_explorer_py --symlink-install
+source install/setup.bash
+```
+
+Launch:
+
+```bash
+ros2 launch frontier_explorer_py frontier_extractor.launch.py
+```
+
+---
+
+### 9. Visualize in RViz2
+
+In RViz2 (visible in the VNC browser tab):
+
+1. Set **Global Options → Fixed Frame** to `simple_drone/odom`
+2. Add displays:
+
+| Display type | Topic | Notes |
+|---|---|---|
+| OctoMap | `/octomap_full` | requires `octomap_rviz_plugins`; shows 3D occupancy |
+| PointCloud2 | `/frontier_extractor/frontier_cloud` | colour by `cluster_id` field |
+| MarkerArray | `/frontier_extractor/cluster_markers` | coloured spheres at cluster centroids |
+| PoseArray | `/frontier_extractor/cluster_centroids` | viewpoint candidates for NBV |
+
+Monitor frontier counts:
+
+```bash
+ros2 topic echo /frontier_extractor/status
+# {"num_frontiers": N, "num_clusters": K}
+```
+
+---
+
+### Drone controls (teleop)
+
+The teleop xterm opens automatically with the simulator. Click it in the VNC desktop and use:
+
+| Key | Action |
+|---|---|
+| `t` | Takeoff |
+| `l` | Land |
+| `q` / `e` | Increase / decrease speed |
+| `w` / `s` | Forward / backward |
+| `a` / `d` | Strafe left / right |
+| `r` / `f` | Rise / fall |
+| `A` / `D` | Rotate left / right |
+
+Speed starts at 0 — press `q` a few times before moving.
+
+---
 
 ## Next steps (project roadmap)
 
-1. ✅ Environment up (this README)
-2. ⬜ Add a Velodyne VLP-16-style 3D LiDAR sensor to the sjtu_drone URDF
-3. ⬜ Connect the LiDAR PointCloud2 topic to `octomap_server` → visualize 3D occupancy in RViz
-4. ⬜ Create `frontier_explorer_3d` package with:
-   - Incremental frontier extraction node (subscribes to `/octomap_full`)
-   - Information-gain NBV selector (raycast through octree)
-   - 3D RRT* planner
-5. ⬜ Design a "collapsed building" Gazebo world for evaluation
+1. ✅ Environment up
+2. ✅ Velodyne VLP-16 LiDAR added to sjtu_drone URDF
+3. ✅ LiDAR → `octomap_server` → 3D occupancy in RViz2
+4. ✅ `frontier_explorer_py`: incremental frontier extraction + clustering
+5. ⬜ `frontier_nbv`: information-gain next-best-view selector
+6. ⬜ `frontier_rrt`: RRT* collision-free path planner
+7. ⬜ Collapsed-building Gazebo world for evaluation
