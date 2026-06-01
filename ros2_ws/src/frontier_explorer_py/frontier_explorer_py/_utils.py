@@ -10,33 +10,64 @@ equality issues when checking set membership.
 
 import numpy as np
 
-_FACE_DIRS = [(1, 0, 0), (-1, 0, 0),
-              (0, 1, 0), (0, -1, 0),
-              (0, 0, 1), (0, 0, -1)]
+_FACE_DIRS = np.array([
+    [1, 0, 0], [-1, 0, 0],
+    [0, 1, 0], [0, -1, 0],
+    [0, 0, 1], [0, 0, -1],
+], dtype=np.int32)
+
+# Encoding constants: offset+scale must cover the full OctoMap key range
+# (default depth 16 → keys in [-32768, 32767]).
+_ENC_OFF = np.int64(32768)
+_ENC_S   = np.int64(65536)   # 2^16, one step per axis
+
+
+def _encode(keys: np.ndarray) -> np.ndarray:
+    """Encode (N,3) int32 keys to unique int64 scalars for np.isin."""
+    k = np.asarray(keys, dtype=np.int64)
+    return (k[:, 0] + _ENC_OFF) * _ENC_S * _ENC_S + \
+           (k[:, 1] + _ENC_OFF) * _ENC_S + \
+           (k[:, 2] + _ENC_OFF)
 
 
 def extract_frontiers(free_keys, known_keys):
-    """Return frontier voxel keys.
+    """Return frontier voxel keys using vectorised np.isin — O(N log M).
 
     Parameters
     ----------
-    free_keys  : iterable of (int, int, int) – free voxel grid keys
-    known_keys : set of (int, int, int)      – all known voxels (free + occupied)
+    free_keys  : (N,3) int np.ndarray  OR  iterable of (int,int,int)
+    known_keys : (M,3) int np.ndarray  OR  set/iterable of (int,int,int)
+        All known voxels (free + occupied).
 
     Returns
     -------
     list of (int, int, int)
-        Free voxels that have at least one unknown (not-in-known_keys) face neighbour.
+        Free voxels that have at least one unknown face neighbour.
     """
-    known = known_keys if isinstance(known_keys, set) else set(known_keys)
-    frontiers = []
-    for k in free_keys:
-        for d in _FACE_DIRS:
-            nb = (k[0] + d[0], k[1] + d[1], k[2] + d[2])
-            if nb not in known:
-                frontiers.append(k)
-                break
-    return frontiers
+    # -- normalise to numpy --
+    if isinstance(free_keys, np.ndarray) and free_keys.ndim == 2:
+        fk = free_keys.astype(np.int32)
+    else:
+        lst = list(free_keys)
+        fk = np.array(lst, dtype=np.int32) if lst else np.empty((0, 3), dtype=np.int32)
+
+    if len(fk) == 0:
+        return []
+
+    if isinstance(known_keys, np.ndarray) and known_keys.ndim == 2:
+        kk = known_keys.astype(np.int32)
+    else:
+        lst = list(known_keys)
+        kk = np.array(lst, dtype=np.int32) if lst else np.empty((0, 3), dtype=np.int32)
+
+    known_enc = _encode(kk) if len(kk) > 0 else np.empty(0, dtype=np.int64)
+
+    frontier_mask = np.zeros(len(fk), dtype=bool)
+    for d in _FACE_DIRS:
+        nb_enc = _encode(fk + d)
+        frontier_mask |= ~np.isin(nb_enc, known_enc)
+
+    return [tuple(int(x) for x in row) for row in fk[frontier_mask]]
 
 
 def cluster_frontiers(pts, cluster_radius, min_cluster_size):

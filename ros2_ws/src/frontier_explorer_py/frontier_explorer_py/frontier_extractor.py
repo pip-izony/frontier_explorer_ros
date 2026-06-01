@@ -14,6 +14,7 @@ Outputs:
 """
 
 import json
+import time
 import numpy as np
 
 import rclpy
@@ -73,6 +74,7 @@ class FrontierExtractor(Node):
         self._occ_pts:    np.ndarray = np.empty((0, 3), dtype=np.float32)  # optional
         self._resolution: float | None = None
         self._frame_id = 'map'
+        self._last_update: float = 0.0   # wall-clock time of last _try_update run
 
         self.get_logger().info(
             f'frontier_extractor ready. '
@@ -122,23 +124,30 @@ class FrontierExtractor(Node):
     def _try_update(self):
         if self._free_pts is None or self._resolution is None:
             return
-        self.get_logger().debug(
-            f'update: free={len(self._free_pts)} occ={len(self._occ_pts)} res={self._resolution:.3f}')
+
+        # Rate-limit to 1 Hz so a large map doesn't block the executor.
+        now = time.monotonic()
+        if now - self._last_update < 1.0:
+            return
+        self._last_update = now
+
         if len(self._free_pts) == 0:
             self._publish_status(0, 0)
             return
 
         res = self._resolution
 
+        # Build known-keys as a single numpy array (no Python set needed).
         free_keys = positions_to_keys(self._free_pts, res)
-        occ_keys  = positions_to_keys(self._occ_pts,  res) if len(self._occ_pts) else np.empty((0, 3), dtype=np.int32)
+        occ_keys  = positions_to_keys(self._occ_pts, res) if len(self._occ_pts) else np.empty((0, 3), dtype=np.int32)
+        known_keys = np.concatenate([free_keys, occ_keys]) if len(occ_keys) else free_keys
 
-        known = set(map(tuple, free_keys))
-        for k in occ_keys:
-            known.add((int(k[0]), int(k[1]), int(k[2])))
-
-        frontier_key_list = extract_frontiers(
-            [tuple(k) for k in free_keys], known)
+        # Vectorised frontier detection: O(N log M) via np.isin.
+        t0 = time.monotonic()
+        frontier_key_list = extract_frontiers(free_keys, known_keys)
+        self.get_logger().debug(
+            f'update: free={len(free_keys)} occ={len(occ_keys)} '
+            f'frontiers={len(frontier_key_list)} dt={time.monotonic()-t0:.3f}s')
 
         if not frontier_key_list:
             self._publish_status(0, 0)
