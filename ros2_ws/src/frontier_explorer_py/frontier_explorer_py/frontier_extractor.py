@@ -88,15 +88,24 @@ class FrontierExtractor(Node):
         for m in msg.markers:
             if m.action != Marker.ADD:
                 continue
-            pts.append((m.pose.position.x, m.pose.position.y, m.pose.position.z))
+            # octomap_server publishes free cells as CUBE_LIST (type 6):
+            # individual voxel centres are in m.points, not m.pose.position.
+            # m.pose is just the list's origin offset (always 0,0,0).
+            for p in m.points:
+                pts.append((p.x, p.y, p.z))
             if self._resolution is None and m.scale.x > 0:
+                # scale.x is the visualisation cube size which equals the
+                # free-cell voxel size at the depth octomap_server iterates.
+                # Store it so we can quantise both free and occupied cells
+                # to the same grid in _try_update.
                 self._resolution = float(m.scale.x)
                 self._frame_id   = m.header.frame_id
         self._free_pts = np.array(pts, dtype=np.float32) if pts else np.empty((0, 3), dtype=np.float32)
         self._try_update()
 
     def _on_occ_cells(self, msg: PointCloud2):
-        self._frame_id = msg.header.frame_id
+        # frame_id is set from free_cells markers; don't override it here
+        # because octomap_point_cloud_centers may arrive before free_cells.
         try:
             from sensor_msgs_py.point_cloud2 import read_points_numpy
             arr = read_points_numpy(msg, field_names=('x', 'y', 'z'), skip_nans=True)
