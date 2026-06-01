@@ -156,14 +156,33 @@ class FrontierExtractor(Node):
     # ── publishers ───────────────────────────────────────────────────────────
 
     def _publish_frontier_cloud(self, pts, labels, hdr):
-        fields = [
+        # Build the binary payload with a structured array so mixed types
+        # (float32 xyz + int32 cluster_id) are packed correctly.
+        # create_cloud() can't handle this mix — it tries to convert -1 labels
+        # viewed as float32 NaN into an INT32 field and crashes.
+        dt = np.dtype([('x', np.float32), ('y', np.float32),
+                       ('z', np.float32), ('cluster_id', np.int32)])
+        arr = np.empty(len(pts), dtype=dt)
+        arr['x'] = pts[:, 0]
+        arr['y'] = pts[:, 1]
+        arr['z'] = pts[:, 2]
+        arr['cluster_id'] = labels
+
+        msg = PointCloud2()
+        msg.header = hdr
+        msg.height = 1
+        msg.width = len(pts)
+        msg.is_dense = True
+        msg.is_bigendian = False
+        msg.point_step = arr.dtype.itemsize       # 16 bytes
+        msg.row_step = msg.point_step * len(pts)
+        msg.fields = [
             PointField(name='x',          offset=0,  datatype=PointField.FLOAT32, count=1),
             PointField(name='y',          offset=4,  datatype=PointField.FLOAT32, count=1),
             PointField(name='z',          offset=8,  datatype=PointField.FLOAT32, count=1),
             PointField(name='cluster_id', offset=12, datatype=PointField.INT32,   count=1),
         ]
-        data = np.column_stack([pts, labels.reshape(-1, 1).view(np.float32)])
-        msg = point_cloud2.create_cloud(hdr, fields, data.tolist())
+        msg.data = arr.tobytes()
         self._frontier_cloud_pub.publish(msg)
 
     def _publish_cluster_markers(self, centroids, hdr):
