@@ -20,7 +20,7 @@ docker compose up
 
 Leave this terminal running. Open a browser to:
 
-> **http://localhost:8080/vnc.html** → click **Connect**
+> **http://localhost:8080/vnc.html**
 
 You will see a Linux desktop. Gazebo and RViz2 will appear here.
 
@@ -35,7 +35,6 @@ docker compose exec ros bash
 ```
 
 Inside the container:
-
 ```bash
 cd /root/ros2_ws/src
 ./frontier_setup.sh
