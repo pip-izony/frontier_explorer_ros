@@ -2,7 +2,14 @@ services:
   ros:
     build: .
     command: tail -f /dev/null
-    volumes: 
+    shm_size: '512m'        # FastDDS SHM transport for large msgs (PointCloud2, OctoMap)
+    cap_add:
+      - SYS_NICE            # allow renice / real-time thread priority inside container
+    ulimits:
+      nofile:
+        soft: 65536
+        hard: 65536
+    volumes:
       - ./ros2_ws/src:/root/ros2_ws/src
     environment:
       - DISPLAY=novnc:0.0
@@ -10,7 +17,8 @@ services:
       - ros.env
     networks:
       - x11
-  novnc:  
+
+  novnc:
     image: theasp/novnc:latest
     env_file:
       - novnc.env
@@ -23,5 +31,6 @@ services:
       retries: 3
     networks:
       - x11
+
 networks:
   x11:
