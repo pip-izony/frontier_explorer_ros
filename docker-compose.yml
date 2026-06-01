@@ -2,7 +2,7 @@ services:
   ros:
     build: .
     command: tail -f /dev/null
-    shm_size: '512m'        # FastDDS SHM transport for large msgs (PointCloud2, OctoMap)
+    shm_size: '4gb'        # FastDDS SHM transport for large msgs (PointCloud2, OctoMap)
     cap_add:
       - SYS_NICE            # allow renice / real-time thread priority inside container
     ulimits:

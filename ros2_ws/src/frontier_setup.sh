@@ -10,6 +10,8 @@ cd /root/ros2_ws/src
 PATCH_FILE=/root/ros2_ws/src/velodyne.patch
 cd sjtu_drone
 patch -p2 < "$PATCH_FILE"
+cd ..
+mv playground.world /root/ros2_ws/src/sjtu_drone/sjtu_drone_description/worlds/playground.world
 
 cd /root/ros2_ws
 source /opt/ros/${ROS_DISTRO}/setup.bash
