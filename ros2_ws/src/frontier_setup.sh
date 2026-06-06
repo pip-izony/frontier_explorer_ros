@@ -7,7 +7,7 @@ cd /root/ros2_ws/src
 [ -d sjtu_drone ] || git clone -b ros2 https://github.com/NovoG93/sjtu_drone.git
 [ -d octomap_mapping ] || git clone -b ros2 https://github.com/OctoMap/octomap_mapping.git
 
-PATCH_FILE=/root/ros2_ws/src/velodyne.patch
+PATCH_FILE=/root/ros2_ws/src/sjtu_drone.patch
 cd sjtu_drone
 patch -p2 < "$PATCH_FILE"
 cd ..
