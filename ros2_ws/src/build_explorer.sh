@@ -122,6 +122,7 @@ class NBVSelector(Node):
         self.declare_parameter('max_z',              1.5)
         self.declare_parameter('replan_period',      1.0)
         self.declare_parameter('min_gain_threshold', 2)
+        self.declare_parameter('max_clusters',       15)    # Process only N nearest clusters
 
         g = lambda n: self.get_parameter(n).value
         self.res         = float(g('voxel_size'))
@@ -133,6 +134,7 @@ class NBVSelector(Node):
         self.max_z       = float(g('max_z'))
         self.replan_T    = float(g('replan_period'))
         self.min_gain    = int(g('min_gain_threshold'))
+        self.max_clusters = int(g('max_clusters'))
 
         # State
         self.occupied    = set()
@@ -190,22 +192,28 @@ class NBVSelector(Node):
 
     def on_frontier(self, msg):
         try:
-            from sensor_msgs_py.point_cloud2 import read_points_numpy
-            pts = read_points_numpy(msg, field_names=('x','y','z'), skip_nans=True)
-            pts = np.asarray(pts).reshape(-1, 3)
-        except Exception:
+            from sensor_msgs_py.point_cloud2 import read_points
+            s = read_points(msg, field_names=('x', 'y', 'z'), skip_nans=True)
+            pts = np.column_stack([s['x'], s['y'], s['z']]).astype(np.float64)
+        except Exception as e:
+            self.get_logger().error(f"on_frontier parse failed: {e}")
             return
         if pts.size:
             self.frontier = set(map(tuple, quantize(pts, self.res).tolist()))
 
     def on_occ(self, msg):
         try:
-            from sensor_msgs_py.point_cloud2 import read_points_numpy
-            pts = read_points_numpy(msg, field_names=('x','y','z'), skip_nans=True)
-            pts = np.asarray(pts).reshape(-1, 3)
-        except Exception:
+            from sensor_msgs_py.point_cloud2 import read_points
+            s = read_points(msg, field_names=('x', 'y', 'z'), skip_nans=True)
+            pts = np.column_stack([s['x'], s['y'], s['z']]).astype(np.float64)
+        except Exception as e:
+            self.get_logger().error(f"on_occ parse failed: {e}")
             return
-        self.occupied = set(map(tuple, quantize(pts, self.res).tolist())) if pts.size else set()
+        if pts.size == 0:
+            self.occupied = set()
+            return
+        keys = np.floor(pts / self.res).astype(np.int32)
+        self.occupied = set(map(tuple, keys.tolist()))
 
     def on_free(self, msg):
         pts = []
@@ -224,9 +232,13 @@ class NBVSelector(Node):
         if self.current_pos is None or not self.centroids or not self.frontier:
             return
 
-        # Step 1: sample k candidates around each cluster centroid
+        # Step 1: sample k candidates around the nearest N cluster centroids
+        cents = sorted(
+            self.centroids,
+            key=lambda c: float(np.linalg.norm(c - self.current_pos)),
+        )[:self.max_clusters]
         candidates = []
-        for c in self.centroids:
+        for c in cents:
             for _ in range(self.k_per_c):
                 r = np.random.uniform(0.8, self.sample_r)
                 theta = np.random.uniform(0, 2*np.pi)
@@ -271,23 +283,21 @@ class NBVSelector(Node):
         )
 
     def compute_gain(self, vp):
-        """Sparse raycast information gain (Sec 4.3).
-
-        For each of n_rays directions, march along the ray:
-          - if cell is occupied -> ray terminates
-          - if cell is a frontier -> count +1 and terminate (one hit per ray)
-        """
+        """Sparse raycast information gain (Sec 4.3)."""
         gain = 0
         vp = np.asarray(vp, dtype=np.float64)
+        inv = 1.0 / self.res
         for d in self.directions:
             for i in range(1, self.n_steps + 1):
                 p = vp + d * (i * self.res)
-                key = tuple(quantize(p.reshape(1, 3), self.res)[0].tolist())
+                key = (int(math.floor(p[0] * inv)),
+                       int(math.floor(p[1] * inv)),
+                       int(math.floor(p[2] * inv)))
                 if key in self.occupied:
                     break
                 if key in self.frontier:
                     gain += 1
-                    break  # Sec 4.3: only one frontier hit per ray
+                    break
         return gain
 
     # ---- Publishers ----
@@ -475,10 +485,11 @@ class Navigator(Node):
 
     def on_occ(self, msg):
         try:
-            from sensor_msgs_py.point_cloud2 import read_points_numpy
-            pts = read_points_numpy(msg, field_names=('x','y','z'), skip_nans=True)
-            pts = np.asarray(pts).reshape(-1, 3)
-        except Exception:
+            from sensor_msgs_py.point_cloud2 import read_points
+            s = read_points(msg, field_names=('x', 'y', 'z'), skip_nans=True)
+            pts = np.column_stack([s['x'], s['y'], s['z']]).astype(np.float64)
+        except Exception as e:
+            self.get_logger().error(f"on_occ parse failed: {e}")
             return
         if pts.size == 0:
             self.occupied = set()
