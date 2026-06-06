@@ -144,13 +144,6 @@ source /root/ros2_ws/install/setup.bash
 pkill -9 -f teleop 2>/dev/null
 ros2 launch frontier_explorer_3d explore.launch.py
 ```
-
-In another container shell:
-```bash
-source /root/ros2_ws/install/setup.bash
-cd /root/ros2_ws/src
-python3 goal_picker.py
-```
 > `teleop` might intercept the navigator command.
 
 ---
