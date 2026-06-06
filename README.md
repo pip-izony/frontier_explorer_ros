@@ -6,7 +6,7 @@ ROS 2 Humble + Gazebo Classic + sjtu_drone + OctoMap, packaged as a single Docke
 
 ## Quick start
 
-### 1. First-time setup (one-time, ~15–25 min)
+### 1. First-time setup
 
 ```bash
 docker compose build
@@ -26,7 +26,7 @@ You will see a Linux desktop. Gazebo and RViz2 will appear here.
 
 ---
 
-### 3. Apply Velodyne patch and build (first time only, ~5 min)
+### 3. Apply Velodyne patch and build
 
 Open a container shell:
 
@@ -44,9 +44,42 @@ This clones dependencies, patches the sjtu_drone URDF to add a VLP-16 LiDAR, and
 
 ---
 
-### 4. Launch the simulator
+### 4. Add collision avoidance module
 
-In a container shell (`docker compose exec ros bash`):
+In a container shell:
+
+```bash
+cd /root/ros2_ws/src
+./collision_avoidance.sh
+```
+
+---
+
+### 5. Add frontier extractor module
+
+In a container shell:
+
+```bash
+cd /root/ros2_ws
+colcon build --packages-select frontier_explorer_py --symlink-install
+```
+
+---
+
+### 6. Add NBV + RRT* module
+
+In a container shell:
+
+```bash
+cd /root/ros2_ws
+colcon build --packages-select frontier_explorer_py --symlink-install
+```
+
+---
+
+### 6. Launch the simulator
+
+In a container shell:
 
 ```bash
 source /root/ros2_ws/install/setup.bash
@@ -57,9 +90,9 @@ Gazebo and RViz2 should appear in the browser tab.
 
 ---
 
-### 5. Takeoff + static TF
+### 7. Takeoff + static TF
 
-In a new container shell:
+In a container shell:
 
 ```bash
 source /root/ros2_ws/install/setup.bash
@@ -73,9 +106,9 @@ ros2 run tf2_ros static_transform_publisher \
 ```
 
 ---
-### 6. Run octomap_server
+### 8. Run octomap_server
 
-In a new container shell:
+In a container shell:
 
 ```bash
 source /root/ros2_ws/install/setup.bash
@@ -91,45 +124,38 @@ ros2 run octomap_server octomap_server_node --ros-args \
 > `publish_free_space:=true` is required for the frontier extractor.
 
 ---
+### 9. Run frontier extractor
 
-### 7. Add collision avoidance (frontier_safety)
-
-In a new container shell:
+In a container shell:
 
 ```bash
 source /root/ros2_ws/install/setup.bash
-ros2 launch frontier_safety collision_avoidance.launch.py
-```
-
-If `frontier_safety` was not built by `frontier_setup.sh`, build it first:
-
-```bash
-cd /root/ros2_ws
-colcon build --packages-select frontier_safety --symlink-install
-source install/setup.bash
-```
-
----
-
-### 8. Run frontier extractor
-
-Build once (or after any source change):
-
-```bash
-cd /root/ros2_ws
-colcon build --packages-select frontier_explorer_py --symlink-install
-source install/setup.bash
-```
-
-Launch:
-
-```bash
 ros2 launch frontier_explorer_py frontier_extractor.launch.py
 ```
 
 ---
 
-### 9. Visualize in RViz2
+### 10. Run NBV + RRT* Navigator
+
+In a container shell:
+
+```bash
+source /root/ros2_ws/install/setup.bash
+pkill -9 -f teleop 2>/dev/null
+ros2 launch frontier_explorer_3d explore.launch.py
+```
+
+In another container shell:
+```bash
+source /root/ros2_ws/install/setup.bash
+cd /root/ros2_ws/src
+python3 goal_picker.py
+```
+> `teleop` might intercept the navigator command.
+
+---
+
+### 11. Visualize in RViz2
 
 In RViz2 (visible in the VNC browser tab):
 
@@ -151,20 +177,6 @@ ros2 topic echo /frontier_extractor/status
 ```
 
 ---
-
-### 10. Run frontier_explorer_3d
-
-```bash
-cd /root/ros2_ws/src
-./build_explorer.sh
-```
-
-Launch:
-
-```bash
-source /root/ros2_ws/install/setup.bash
-ros2 launch frontier_explorer_py frontier_extractor.launch.py
-```
 
 ## Next steps (project roadmap)
 
